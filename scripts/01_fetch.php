@@ -1,6 +1,6 @@
 <?php
 
-$url = 'https://alerts.ncdr.nat.gov.tw/RSS/Typhoon_Track.kmz';
+$url = 'https://alerts.ncdr.nat.gov.tw/DownLoadNewAssistData.ashx/1';
 $outputFile = __DIR__ . '/../docs/typhoon.kmz';
 
 echo "Fetching KMZ data from: $url\n";
@@ -10,8 +10,17 @@ curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; PHP KMZ Fetcher)');
+curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'Accept: */*',
+    'Accept-Language: en-US,en;q=0.9',
+    'Accept-Encoding: gzip, deflate, br',
+    'Connection: keep-alive',
+    'Cache-Control: no-cache',
+    'Pragma: no-cache'
+]);
+curl_setopt($ch, CURLOPT_ENCODING, '');
 
 $data = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
