@@ -45,15 +45,71 @@ if (empty($data)) {
     exit(1);
 }
 
-$bytesWritten = file_put_contents($outputFile, $data);
+// Save to temporary file first
+$tempFile = $outputFile . '.tmp';
+$bytesWritten = file_put_contents($tempFile, $data);
 
 if ($bytesWritten === false) {
-    echo "Failed to write file: $outputFile\n";
+    echo "Failed to write temporary file: $tempFile\n";
     exit(1);
 }
 
-echo "Successfully saved " . number_format($bytesWritten) . " bytes to: $outputFile\n";
-echo "File size: " . number_format(filesize($outputFile)) . " bytes\n";
-echo "Last modified: " . date('Y-m-d H:i:s', filemtime($outputFile)) . "\n";
+echo "Downloaded " . number_format($bytesWritten) . " bytes\n";
+
+// Validate KMZ contents
+$zip = new ZipArchive();
+if ($zip->open($tempFile) !== TRUE) {
+    echo "Failed to open KMZ file\n";
+    unlink($tempFile);
+    exit(1);
+}
+
+// Look for KML file inside the KMZ
+$kmlFound = false;
+$hasFeatures = false;
+
+for ($i = 0; $i < $zip->numFiles; $i++) {
+    $filename = $zip->getNameIndex($i);
+    if (pathinfo($filename, PATHINFO_EXTENSION) === 'kml') {
+        $kmlFound = true;
+        $kmlContent = $zip->getFromIndex($i);
+        
+        // Check if KML contains any Placemark features
+        if (strpos($kmlContent, '<Placemark>') !== false || 
+            strpos($kmlContent, '<Placemark ') !== false) {
+            $hasFeatures = true;
+            
+            // Count features for logging
+            $placemarkCount = substr_count($kmlContent, '<Placemark');
+            echo "Found $placemarkCount Placemark(s) in $filename\n";
+        }
+        break;
+    }
+}
+
+$zip->close();
+
+if (!$kmlFound) {
+    echo "No KML file found inside KMZ\n";
+    unlink($tempFile);
+    exit(1);
+}
+
+if (!$hasFeatures) {
+    echo "No features found in KML - skipping update\n";
+    unlink($tempFile);
+    exit(0);
+}
+
+// Replace the original file only if validation passed
+if (rename($tempFile, $outputFile)) {
+    echo "Successfully updated: $outputFile\n";
+    echo "File size: " . number_format(filesize($outputFile)) . " bytes\n";
+    echo "Last modified: " . date('Y-m-d H:i:s', filemtime($outputFile)) . "\n";
+} else {
+    echo "Failed to update file: $outputFile\n";
+    unlink($tempFile);
+    exit(1);
+}
 
 ?>
